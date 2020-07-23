@@ -6,27 +6,113 @@ fetch(countriesPath)
     return obj.json()
   })
   .then(function(countriesArray){
-    countriesArray.forEach(makeCountryDiv)
+    countriesArray.forEach(function(country){
+      countryContainer.innerHTML += makeCountryDiv(country)
+    })
   })
 
 function makeCountryDiv(country){
-  countryContainer.innerHTML += `
+  return `
   <div id=country-${country.id}>
-  <p>Name: ${country.name}</p>
-  <p>Population: ${country.population}</p>
-  <p>Bird: ${country.bird}</p>
-  <ul>
-  ${country.cities.map(makeCityLi).join('')}
-  <ul>
+    <div id=country-${country.id}-details>
+      <p>Name: <span>${country.name}</span></p>
+      <p>Population: <span>${country.population}</span></p>
+      <p>National Bird: <span>${country.bird}</span></p>
+    </div>
+    <ul id=country-${country.id}-cities>
+      ${country.cities.map(makeCityLi).join("")}
+    </ul>
+    <button>Add City</button>
+    <button id="delete-button-${country.id}" class="delete-button" data-country=${country.id}>Edit Country</button>
+    <button>Delete Country</button>
+    <p>==============</p>
   </div>
   `
 }
 
 function makeCityLi(city){
-  return `<li>${city.name}</li>`
+  return `<li>${city.capital ? city.name + " - Capital" : city.name}</li>`
+}
+
+countryContainer.addEventListener('click', function(e){
+  if (e.target.className == "delete-button"){
+    e.target.disabled = true
+    let countryDetailsDiv = document.getElementById(`country-${e.target.dataset.country}-details`)
+    let info = [e.target.dataset.country]
+    countryDetailsDiv.querySelectorAll('span').forEach(function(span){
+       info.push(span.innerText)
+    })
+    countryDetailsDiv.innerHTML = generateForm(info)
+  }
+})
+
+countryContainer.addEventListener('submit', function(e){
+  e.preventDefault()
+  let countryId = e.target.dataset.country
+  let info = []
+  e.target.querySelectorAll('input').forEach(function(input){
+    info.push(input.value)
+  })
+  //info.pop()
+  fetch(`http://localhost:3000/countries/${countryId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: JSON.stringify({
+      country: {
+        name: info[0],
+        population: info[1],
+        bird: info[2]
+      }
+    })
+  })
+  let countryDetailsDiv = document.getElementById(`country-${countryId}-details`)
+  countryDetailsDiv.innerHTML = `
+    <div id=country-${countryId}-details>
+      <p>Name: <span>${info[0]}</span></p>
+      <p>Population: <span>${info[1]}</span></p>
+      <p>National Bird: <span>${info[2]}</span></p>
+    </div>`
+  document.getElementById(`delete-button-${countryId}`).disabled = false
+})
+
+//optimistic vs pessimistic rendering
+//in order to follow pessimistic rendering, we need to change the dom in the .then chain after we've received confirmation from the server
+//in order to follow optomistic rendering, we can ignore the fetch request basicaly entirely
+
+function generateForm(info){
+  return `
+    <form class="edit-form" data-country=${info[0]}>
+      <label>Name:</label>
+      <input type="text" name="name" value="${info[1]}">
+      <br/>
+      <label>Population:</label>
+      <input type="text" name="population" value="${info[2]}">
+      <br/>
+      <label>National Bird:</label>
+      <input type="text" name="bird" value="${info[3]}">
+      <br/>
+      <input id=edit-country type="submit" value="Submit Country">
+    </form>
+  `
 }
 
 
+
+// let form = `
+//   <label>Name:</label>
+//   <input type="text" name="name" value="">
+//   <br/>
+//   <label>Population:</label>
+//   <input type="text" name="population" value="">
+//   <br/>
+//   <label>National Bird:</label>
+//   <input type="text" name="population" value="">
+//   <br/>
+//   <input type="submit" value="Submit Country">
+// `
 
 
 
